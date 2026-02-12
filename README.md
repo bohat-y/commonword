@@ -116,6 +116,12 @@ import a puzzle:
   }'
   ```
 
+using buildx for multi-arch:
+```  docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    -t ghcr.io/<your-github-username>/commonword-api:latest \
+    --push .    
+```
 ## Notes
 - Puzzle definitions are stored as JSONB in Postgres.
 - The daily puzzle endpoint returns the most recent `is_daily=true` puzzle, otherwise the most recent import.
