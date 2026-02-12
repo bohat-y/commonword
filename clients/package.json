@@ -1,0 +1,11 @@
+{
+  "name": "commonword-clients",
+  "private": true,
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "dev:web": "pnpm -C apps/web dev",
+    "dev:tauri": "pnpm -C apps/tauri tauri dev",
+    "build:web": "pnpm -C apps/web build",
+    "build:tauri": "pnpm -C apps/tauri build"
+  }
+}

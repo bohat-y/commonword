@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Commonword",
+  "version": "0.1.0",
+  "identifier": "com.commonword.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      { "title": "Commonword", "width": 420, "height": 840 }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "icon": ["icons/icon.png"]
+  }
+}

@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: commonword-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: commonword
+      POSTGRES_PASSWORD: commonword
+      POSTGRES_DB: commonword
+    ports:
+      - "5432:5432"
+    volumes:
+      - commonword_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U commonword -d commonword -h localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  commonword_pgdata:
