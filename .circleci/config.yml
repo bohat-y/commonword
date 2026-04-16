@@ -352,6 +352,86 @@ jobs:
           path: /tmp/api-image
           destination: api-image
 
+  deploy-api:
+    executor: base-executor
+    steps:
+      - checkout
+      - run:
+          name: Install deploy tooling
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y jq wget
+
+            mkdir -p ~/bin
+            wget -q https://github.com/digitalocean/doctl/releases/download/v1.154.0/doctl-1.154.0-linux-amd64.tar.gz -O /tmp/doctl.tar.gz
+            tar -xzf /tmp/doctl.tar.gz -C /tmp
+            mv /tmp/doctl ~/bin/doctl
+            chmod +x ~/bin/doctl
+            echo 'export PATH="$HOME/bin:$PATH"' >> "$BASH_ENV"
+      - run:
+          name: Resolve deploy variables
+          command: |
+            do_token="${DIGITALOCEAN_ACCESS_TOKEN_COMMONWORD:-${DIGITALOCEAN_ACCESS_TOKEN_COMMONWOR:-}}"
+            if [ -z "$do_token" ]; then
+              echo "DIGITALOCEAN_ACCESS_TOKEN_COMMONWORD must be set in the commonword-api-deploy context."
+              exit 1
+            fi
+
+            if [ -z "${DO_APP_ID:-}" ]; then
+              echo "DO_APP_ID must be set in the commonword-api-deploy context."
+              exit 1
+            fi
+
+            ghcr_namespace="${GHCR_NAMESPACE:-$GHCR_USERNAME}"
+            ghcr_namespace="$(printf '%s' "$ghcr_namespace" | tr '[:upper:]' '[:lower:]')"
+
+            echo "export DO_ACCESS_TOKEN=$do_token" >> "$BASH_ENV"
+            echo "export GHCR_IMAGE_REGISTRY=$ghcr_namespace" >> "$BASH_ENV"
+            echo "export GHCR_IMAGE_REPOSITORY=commonword-api" >> "$BASH_ENV"
+            echo "export GHCR_IMAGE_TAG=sha-${CIRCLE_SHA1}" >> "$BASH_ENV"
+      - run:
+          name: Patch app spec to the new API image tag
+          command: |
+            doctl apps spec get "$DO_APP_ID" --format json --access-token "$DO_ACCESS_TOKEN" > /tmp/app-spec.json
+
+            match_count="$(jq -r \
+              --arg registry "$GHCR_IMAGE_REGISTRY" \
+              --arg repository "$GHCR_IMAGE_REPOSITORY" \
+              '[.services[]? | select(.image.registry_type == "GHCR" and .image.registry == $registry and .image.repository == $repository)] | length' \
+              /tmp/app-spec.json)"
+
+            if [ "$match_count" = "0" ]; then
+              echo "Could not find a GHCR service for ${GHCR_IMAGE_REGISTRY}/${GHCR_IMAGE_REPOSITORY} in the current app spec."
+              exit 1
+            fi
+
+            jq \
+              --arg registry "$GHCR_IMAGE_REGISTRY" \
+              --arg repository "$GHCR_IMAGE_REPOSITORY" \
+              --arg tag "$GHCR_IMAGE_TAG" \
+              '(.services[]? | select(.image.registry_type == "GHCR" and .image.registry == $registry and .image.repository == $repository) | .image.tag) = $tag' \
+              /tmp/app-spec.json > /tmp/app-spec.patched.json
+      - run:
+          name: Deploy API on App Platform
+          command: |
+            doctl apps update "$DO_APP_ID" \
+              --spec /tmp/app-spec.patched.json \
+              --wait \
+              --access-token "$DO_ACCESS_TOKEN"
+      - run:
+          name: Write deployment metadata
+          command: |
+            mkdir -p /tmp/api-deploy
+            {
+              echo "app_id=${DO_APP_ID}"
+              echo "registry=${GHCR_IMAGE_REGISTRY}"
+              echo "repository=${GHCR_IMAGE_REPOSITORY}"
+              echo "tag=${GHCR_IMAGE_TAG}"
+            } > /tmp/api-deploy/metadata.txt
+      - store_artifacts:
+          path: /tmp/api-deploy
+          destination: api-deploy
+
 workflows:
   api-ci:
     jobs:
@@ -363,6 +443,15 @@ workflows:
           requires:
             - backend-quality
             - backend-security
+          filters:
+            branches:
+              only:
+                - main
+      - deploy-api:
+          context:
+            - commonword-api-deploy
+          requires:
+            - publish-api-image
           filters:
             branches:
               only:
