@@ -70,6 +70,7 @@ dependencyCheck {
     failBuildOnCVSS = 7.0f
     scanConfigurations = listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")
     skipTestGroups = true
+    data.directory = "${gradle.gradleUserHomeDir}/dependency-check-data"
     nvd.apiKey = providers.environmentVariable("NVD_API_KEY").orNull
 }
 
