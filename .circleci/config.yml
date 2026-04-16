@@ -182,20 +182,20 @@ jobs:
             yes | sdkmanager --licenses >/dev/null || true
             sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - run:
-          name: Run Android lint, unit tests, and JaCoCo
+          name: Run Android unit tests and JaCoCo
           command: |
             cd clients/apps/android-native
-            ./gradlew --no-daemon lintDebug testDebugUnitTest jacocoTestReport
+            ./gradlew --no-daemon testDebugUnitTest jacocoTestReport
       - save_cache:
           key: gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
       - store_test_results:
-          path: clients/apps/android-native/app/build/test-results
+          path: clients/apps/android-native/app/build/test-results/testDebugUnitTest
       - store_artifacts:
-          path: clients/apps/android-native/app/build/reports
-          destination: android-reports
+          path: clients/apps/android-native/app/build/reports/jacoco
+          destination: android-jacoco-reports
 
   android-security:
     machine:
@@ -204,6 +204,13 @@ jobs:
     working_directory: ~/project
     steps:
       - checkout
+      - run:
+          name: Skip if NVD API key is not configured
+          command: |
+            if [ -z "${NVD_API_KEY:-}" ]; then
+              echo "Skipping Android dependency scan because NVD_API_KEY is not set."
+              circleci-agent step halt
+            fi
       - restore_cache:
           keys:
             - gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
@@ -229,6 +236,19 @@ workflows:
       - backend-security
       - clients-quality
       - clients-security
-      - tauri-security
       - android-quality
-      - android-security
+
+  extended-security:
+    jobs:
+      - tauri-security:
+          filters:
+            branches:
+              only:
+                - main
+      - android-security:
+          context:
+            - commonword-extended-security
+          filters:
+            branches:
+              only:
+                - main

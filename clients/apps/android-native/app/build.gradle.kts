@@ -70,6 +70,7 @@ dependencyCheck {
     failBuildOnCVSS = 7.0f
     scanConfigurations = listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")
     skipTestGroups = true
+    nvd.apiKey = providers.environmentVariable("NVD_API_KEY").orNull
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
