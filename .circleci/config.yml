@@ -353,26 +353,26 @@ jobs:
           destination: api-image
 
 workflows:
-  ci:
+  api-ci:
     jobs:
       - backend-quality
       - backend-security
-      - clients-quality
-      - clients-security
-      - android-quality
       - publish-api-image:
           context:
             - commonword-api-deploy
           requires:
             - backend-quality
             - backend-security
-            - clients-quality
-            - clients-security
-            - android-quality
           filters:
             branches:
               only:
                 - main
+
+  clients-ci:
+    jobs:
+      - clients-quality
+      - clients-security
+      - android-quality
 
   extended-security:
     jobs:
@@ -382,13 +382,16 @@ workflows:
               only:
                 - main
 
-  quality-reports:
+  api-reports:
     jobs:
       - backend-coverage:
           filters:
             branches:
               only:
                 - main
+
+  clients-reports:
+    jobs:
       - frontend-reports:
           filters:
             branches:
