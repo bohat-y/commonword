@@ -19,6 +19,11 @@ executors:
       - image: rust:1.87-bookworm
     working_directory: ~/project
 
+  base-executor:
+    docker:
+      - image: cimg/base:stable
+    working_directory: ~/project
+
 commands:
   enable-pnpm:
     steps:
@@ -299,6 +304,54 @@ jobs:
           path: clients/packages/ui-core/coverage
           destination: frontend-coverage
 
+  publish-api-image:
+    executor: base-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Resolve GHCR image metadata
+          command: |
+            if [ -z "${GHCR_USERNAME:-}" ] || [ -z "${GHCR_TOKEN:-}" ]; then
+              echo "GHCR_USERNAME and GHCR_TOKEN must be set to publish the API image."
+              exit 1
+            fi
+
+            ghcr_namespace="${GHCR_NAMESPACE:-$GHCR_USERNAME}"
+            ghcr_namespace="$(printf '%s' "$ghcr_namespace" | tr '[:upper:]' '[:lower:]')"
+
+            echo "export GHCR_IMAGE_REPO=ghcr.io/${ghcr_namespace}/commonword-api" >> "$BASH_ENV"
+            echo "export GHCR_IMAGE_TAG=sha-${CIRCLE_SHA1}" >> "$BASH_ENV"
+      - run:
+          name: Log in to GHCR
+          command: |
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+      - run:
+          name: Build API Docker image
+          command: |
+            docker build \
+              -f backend/Dockerfile \
+              -t "${GHCR_IMAGE_REPO}:${GHCR_IMAGE_TAG}" \
+              -t "${GHCR_IMAGE_REPO}:latest" \
+              backend
+      - run:
+          name: Push API Docker image
+          command: |
+            docker push "${GHCR_IMAGE_REPO}:${GHCR_IMAGE_TAG}"
+            docker push "${GHCR_IMAGE_REPO}:latest"
+      - run:
+          name: Write image metadata
+          command: |
+            mkdir -p /tmp/api-image
+            {
+              echo "repository=${GHCR_IMAGE_REPO}"
+              echo "sha_tag=${GHCR_IMAGE_TAG}"
+              echo "latest_tag=latest"
+            } > /tmp/api-image/metadata.txt
+      - store_artifacts:
+          path: /tmp/api-image
+          destination: api-image
+
 workflows:
   ci:
     jobs:
@@ -307,6 +360,19 @@ workflows:
       - clients-quality
       - clients-security
       - android-quality
+      - publish-api-image:
+          context:
+            - commonword-api-deploy
+          requires:
+            - backend-quality
+            - backend-security
+            - clients-quality
+            - clients-security
+            - android-quality
+          filters:
+            branches:
+              only:
+                - main
 
   extended-security:
     jobs:
