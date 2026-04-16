@@ -49,7 +49,7 @@ jobs:
             mkdir -p /tmp/test-results/dotnet
             dotnet test backend/Commonword.sln \
               -c Release \
-              --no-build \
+              --no-restore \
               --logger "trx;LogFileName=commonword.trx" \
               --results-directory /tmp/test-results/dotnet
       - store_test_results:
@@ -57,6 +57,41 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results/dotnet
           destination: backend-test-results
+
+  backend-security:
+    executor: dotnet-executor
+    steps:
+      - checkout
+      - run:
+          name: Install jq
+          command: |
+            apt-get update
+            apt-get install -y jq
+      - restore_cache:
+          keys:
+            - nuget-v1-{{ checksum "backend/Directory.Packages.props" }}-{{ checksum "backend/Commonword.sln" }}
+            - nuget-v1-
+      - run:
+          name: Audit NuGet packages
+          command: |
+            dotnet package list \
+              --project backend/Commonword.sln \
+              --include-transitive \
+              --vulnerable \
+              --format json \
+              > /tmp/backend-vulnerabilities.json
+
+            if jq -e '[.. | objects | select(has("vulnerabilities")) | select(.vulnerabilities | length > 0)] | length == 0' /tmp/backend-vulnerabilities.json >/dev/null; then
+              echo "No known vulnerable NuGet packages were reported."
+              exit 0
+            fi
+
+            echo "Vulnerable NuGet packages were found:"
+            jq '[.. | objects | select(has("id") and has("vulnerabilities")) | select(.vulnerabilities | length > 0)]' /tmp/backend-vulnerabilities.json
+            exit 1
+      - store_artifacts:
+          path: /tmp/backend-vulnerabilities.json
+          destination: backend-security
 
   clients-quality:
     executor: node-executor
@@ -83,8 +118,28 @@ jobs:
           name: Build Tauri web shell
           command: pnpm -C clients/apps/tauri build
 
+  clients-security:
+    executor: node-executor
+    steps:
+      - checkout
+      - enable-pnpm
+      - restore_cache:
+          keys:
+            - pnpm-v1-{{ checksum "clients/pnpm-lock.yaml" }}
+            - pnpm-v1-
+      - run:
+          name: Install workspace dependencies
+          command: pnpm install --dir clients --frozen-lockfile
+      - run:
+          name: Audit JavaScript dependencies
+          command: |
+            cd clients
+            pnpm audit --audit-level high
+
 workflows:
   ci:
     jobs:
       - backend-quality
+      - backend-security
       - clients-quality
+      - clients-security
