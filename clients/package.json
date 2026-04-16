@@ -2,6 +2,11 @@
   "name": "commonword-clients",
   "private": true,
   "packageManager": "pnpm@9.12.3",
+  "pnpm": {
+    "overrides": {
+      "rollup": "^4.59.0"
+    }
+  },
   "scripts": {
     "dev:web": "pnpm -C apps/web dev",
     "dev:tauri": "pnpm -C apps/tauri tauri dev",
