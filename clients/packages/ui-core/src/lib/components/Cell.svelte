@@ -45,6 +45,7 @@
     padding: 0;
     transition: background 120ms ease, border-color 120ms ease;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .cell.word {
@@ -61,35 +62,39 @@
     outline: 3px solid var(--accent, #d97706);
   }
 
-  .cell.incorrect {
-    animation: flash-incorrect 0.8s ease-in-out 0s 2;
+  .cell.incorrect::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fecaca;
+    pointer-events: none;
+    animation: flash-overlay 0.8s ease-in-out 0s 2 forwards;
   }
 
-  .cell.correct {
-    animation: flash-correct 0.8s ease-in-out 0s 2;
+  .cell.correct::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #bbf7d0;
+    pointer-events: none;
+    animation: flash-overlay 0.8s ease-in-out 0s 2 forwards;
   }
 
-  @keyframes flash-incorrect {
+  @keyframes flash-overlay {
     0% {
-      background: #fecaca;
+      opacity: 1;
     }
     50% {
-      background: #ffffff;
+      opacity: 0;
     }
     100% {
-      background: #fecaca;
-    }
-  }
-
-  @keyframes flash-correct {
-    0% {
-      background: #bbf7d0;
-    }
-    50% {
-      background: #ffffff;
-    }
-    100% {
-      background: #bbf7d0;
+      opacity: 0;
     }
   }
 
@@ -105,9 +110,12 @@
     font-weight: 700;
     color: #64748b;
     line-height: 1;
+    z-index: 1;
   }
 
   .value {
     font-size: inherit;
+    position: relative;
+    z-index: 1;
   }
 </style>

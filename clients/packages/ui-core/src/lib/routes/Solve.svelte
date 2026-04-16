@@ -41,8 +41,16 @@
   let entryInput: HTMLInputElement | null = null;
   let solvedClues = new Set<string>();
   let checkQueue: Promise<void> = Promise.resolve();
-
   const keyOf = (row: number, col: number) => `${row},${col}`;
+
+  const focusEntryField = () => {
+    if (!entryInput) return;
+    try {
+      entryInput.focus({ preventScroll: true });
+    } catch {
+      entryInput.focus();
+    }
+  };
 
   let blockSet = new Set<string>();
   let wordStartMaps: Record<WordDirection, Map<string, number>> = {
@@ -223,15 +231,13 @@
       if (other) {
         activeDirection = otherDirection;
         selectedClue = other;
-        if (entryInput) entryInput.focus();
+        focusEntryField();
         return;
       }
     }
     setSelectedCell({ row, col });
     updateSelectedClue(row, col);
-    if (entryInput) {
-      entryInput.focus();
-    }
+    focusEntryField();
   };
 
   const moveSelection = (deltaRow: number, deltaCol: number) => {
@@ -435,7 +441,7 @@
       if (correctToken === token) {
         correct = new Set();
       }
-    }, 1200);
+    }, 1600);
   };
 
   const runCheckWordInternal = async (clue: ClueSelection, showStatus: boolean) => {
@@ -584,7 +590,7 @@
     <p class="error">{$errorStore}</p>
   {:else if $puzzleStore}
     <div class="layout">
-      <section class="board">
+      <section class="board" on:touchstart={focusEntryField}>
     <Grid
       grid={$gridStore}
       entries={$entriesStore}
@@ -741,11 +747,15 @@
   }
 
   .entry-input {
-    position: absolute;
-    opacity: 0;
-    width: 1px;
-    height: 1px;
-    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    opacity: 0.01;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    padding: 0;
+    font-size: 16px;
   }
 
   @media (min-width: 980px) {
