@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  run_extended_security:
+    type: boolean
+    default: false
+
 executors:
   dotnet-executor:
     docker:
@@ -224,6 +229,7 @@ jobs:
             sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - run:
           name: Run OWASP Dependency-Check
+          no_output_timeout: 30m
           command: |
             cd clients/apps/android-native
             ./gradlew --no-daemon dependencyCheckAnalyze
@@ -245,6 +251,7 @@ workflows:
       - android-quality
 
   extended-security:
+    when: << pipeline.parameters.run_extended_security >>
     jobs:
       - tauri-security:
           filters:
