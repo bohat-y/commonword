@@ -11,6 +11,14 @@
     "dev:web": "pnpm -C apps/web dev",
     "dev:tauri": "pnpm -C apps/tauri tauri dev",
     "build:web": "pnpm -C apps/web build",
-    "build:tauri": "pnpm -C apps/tauri build"
+    "build:tauri": "pnpm -C apps/tauri build",
+    "lint:report": "mkdir -p reports/eslint && eslint \"apps/web/src/**/*.ts\" \"packages/ui-core/src/**/*.ts\" --format json --output-file reports/eslint/frontend-eslint.json",
+    "test:coverage:web": "pnpm -C packages/ui-core test:coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.4.0",
+    "typescript-eslint": "^8.46.2"
   }
 }

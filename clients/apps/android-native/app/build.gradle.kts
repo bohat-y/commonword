@@ -58,6 +58,10 @@ android {
         compose = true
         buildConfig = true
     }
+    lint {
+        htmlReport = true
+        xmlReport = true
+    }
 }
 
 jacoco {

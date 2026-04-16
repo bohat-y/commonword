@@ -55,7 +55,7 @@ jobs:
             dotnet test backend/Commonword.sln \
               -c Release \
               --no-restore \
-              --logger "trx;LogFileName=commonword.trx" \
+              --logger "trx;LogFilePrefix=commonword" \
               --results-directory /tmp/test-results/dotnet
       - store_test_results:
           path: /tmp/test-results/dotnet
@@ -97,6 +97,43 @@ jobs:
       - store_artifacts:
           path: /tmp/backend-vulnerabilities.json
           destination: backend-security
+
+  backend-coverage:
+    executor: dotnet-executor
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - nuget-v1-{{ checksum "backend/Directory.Packages.props" }}-{{ checksum "backend/Commonword.sln" }}
+            - nuget-v1-
+      - run:
+          name: Restore backend dependencies
+          command: dotnet restore backend/Commonword.sln
+      - save_cache:
+          key: nuget-v1-{{ checksum "backend/Directory.Packages.props" }}-{{ checksum "backend/Commonword.sln" }}
+          paths:
+            - ~/.nuget/packages
+      - run:
+          name: Generate backend Cobertura coverage
+          command: |
+            rm -rf /tmp/backend-coverage
+            mkdir -p /tmp/backend-coverage/test-results /tmp/backend-coverage/cobertura
+            dotnet test backend/Commonword.sln \
+              -c Release \
+              --no-restore \
+              --logger "trx;LogFilePrefix=coverage" \
+              --results-directory /tmp/backend-coverage/test-results \
+              --collect:"XPlat Code Coverage;Format=cobertura"
+
+            find /tmp/backend-coverage/test-results -name 'coverage.cobertura.xml' | while read -r file; do
+              folder="$(basename "$(dirname "$file")")"
+              cp "$file" "/tmp/backend-coverage/cobertura/${folder}-coverage.cobertura.xml"
+            done
+      - store_test_results:
+          path: /tmp/backend-coverage/test-results
+      - store_artifacts:
+          path: /tmp/backend-coverage
+          destination: backend-coverage
 
   clients-quality:
     executor: node-executor
@@ -195,6 +232,69 @@ jobs:
       - store_test_results:
           path: clients/apps/android-native/app/build/test-results/testDebugUnitTest
 
+  android-reports:
+    machine:
+      image: android:2024.11.1
+    resource_class: medium
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+            - gradle-v1-
+      - run:
+          name: Install Android SDK 36 packages
+          command: |
+            yes | sdkmanager --licenses >/dev/null || true
+            sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - run:
+          name: Generate Android lint and JaCoCo reports
+          command: |
+            cd clients/apps/android-native
+            ./gradlew --no-daemon lintDebug jacocoTestReport
+      - save_cache:
+          key: gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+      - store_test_results:
+          path: clients/apps/android-native/app/build/test-results/testDebugUnitTest
+      - store_artifacts:
+          path: clients/apps/android-native/app/build/reports
+          destination: android-quality-reports
+
+  frontend-reports:
+    executor: node-executor
+    environment:
+      VITE_API_BASE_URL: https://api.example.invalid
+    steps:
+      - checkout
+      - enable-pnpm
+      - restore_cache:
+          keys:
+            - pnpm-v1-{{ checksum "clients/pnpm-lock.yaml" }}
+            - pnpm-v1-
+      - run:
+          name: Install workspace dependencies
+          command: pnpm install --dir clients --frozen-lockfile
+      - save_cache:
+          key: pnpm-v1-{{ checksum "clients/pnpm-lock.yaml" }}
+          paths:
+            - ~/.pnpm-store
+      - run:
+          name: Generate ESLint report
+          command: pnpm -C clients lint:report
+      - run:
+          name: Generate Vitest coverage report
+          command: pnpm -C clients test:coverage:web
+      - store_artifacts:
+          path: clients/reports/eslint
+          destination: frontend-eslint
+      - store_artifacts:
+          path: clients/packages/ui-core/coverage
+          destination: frontend-coverage
+
 workflows:
   ci:
     jobs:
@@ -207,6 +307,24 @@ workflows:
   extended-security:
     jobs:
       - tauri-security:
+          filters:
+            branches:
+              only:
+                - main
+
+  quality-reports:
+    jobs:
+      - backend-coverage:
+          filters:
+            branches:
+              only:
+                - main
+      - frontend-reports:
+          filters:
+            branches:
+              only:
+                - main
+      - android-reports:
           filters:
             branches:
               only:
