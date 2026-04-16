@@ -276,6 +276,34 @@
     return null;
   };
 
+  const clearCurrentOrMoveBackward = () => {
+    const selected = get(selectedCellStore);
+    if (!selected) return;
+
+    const currentValue = get(entriesStore).get(keyOf(selected.row, selected.col)) || "";
+    if (currentValue) {
+      inputValue = "";
+      applyValue("");
+      return;
+    }
+
+    const previous = findPreviousCell(selected.row, selected.col, activeDirection);
+    if (!previous) return;
+
+    selectCell(previous.row, previous.col);
+    const previousValue = get(entriesStore).get(keyOf(previous.row, previous.col)) || "";
+    if (previousValue) {
+      inputValue = "";
+      applyValue("");
+    }
+  };
+
+  const applyTypedCharacter = (raw: string) => {
+    const value = raw.toUpperCase().replace(/[^A-Z]/g, "").slice(-1);
+    inputValue = value;
+    applyValue(value, value.length === 1);
+  };
+
   const applyValue = (value: string, advance = false) => {
     const selected = get(selectedCellStore);
     const session = get(sessionStore);
@@ -337,7 +365,7 @@
   const handleKeyDown = (event: KeyboardEvent) => {
     const target = event.target as HTMLElement | null;
     const isEntryInput = target?.classList?.contains("entry-input");
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
 
     const selected = get(selectedCellStore);
     if (!selected) return;
@@ -368,22 +396,7 @@
 
     if (event.key === "Backspace" || event.key === "Delete") {
       event.preventDefault();
-      const currentValue = get(entriesStore).get(keyOf(selected.row, selected.col)) || "";
-      if (currentValue) {
-        inputValue = "";
-        applyValue("");
-        return;
-      }
-
-      const previous = findPreviousCell(selected.row, selected.col, activeDirection);
-      if (previous) {
-        selectCell(previous.row, previous.col);
-        const prevValue = get(entriesStore).get(keyOf(previous.row, previous.col)) || "";
-        if (prevValue) {
-          inputValue = "";
-          applyValue("");
-        }
-      }
+      clearCurrentOrMoveBackward();
       return;
     }
 
@@ -391,20 +404,41 @@
 
     if (/^[a-zA-Z]$/.test(event.key)) {
       event.preventDefault();
-      const value = event.key.toUpperCase();
-      inputValue = value;
-      applyValue(value, true);
+      applyTypedCharacter(event.key);
     }
+  };
+
+  const handleBeforeInput = (event: InputEvent) => {
+    const selected = get(selectedCellStore);
+    if (!selected) return;
+
+    if (
+      event.inputType === "deleteContentBackward" ||
+      event.inputType === "deleteContentForward"
+    ) {
+      event.preventDefault();
+      clearCurrentOrMoveBackward();
+      return;
+    }
+
+    if (!event.inputType.startsWith("insert")) return;
+
+    const raw = event.data ?? "";
+    const value = raw.toUpperCase().replace(/[^A-Z]/g, "").slice(-1);
+    if (!value) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    applyTypedCharacter(value);
   };
 
   const handleInput = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement | null;
     if (!target) return;
 
-    const cleaned = target.value.toUpperCase().replace(/[^A-Z]/g, "");
-    const value = cleaned.slice(-1);
-    inputValue = value;
-    applyValue(value, value.length === 1);
+    applyTypedCharacter(target.value);
   };
 
   const handleClueSelect = (direction: WordDirection, number: number) => {
@@ -608,11 +642,15 @@
           maxlength="1"
           bind:this={entryInput}
           bind:value={inputValue}
+          on:beforeinput={handleBeforeInput}
           on:input={handleInput}
           aria-label="Cell entry"
           autocomplete="off"
           autocapitalize="characters"
+          autocorrect="off"
           inputmode="text"
+          spellcheck="false"
+          enterkeyhint="done"
         />
 
         <section class="clue-actions">
@@ -747,15 +785,16 @@
   }
 
   .entry-input {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
-    opacity: 0.01;
-    width: 16px;
-    height: 16px;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
     border: 0;
     padding: 0;
     font-size: 16px;
+    pointer-events: none;
   }
 
   @media (min-width: 980px) {
