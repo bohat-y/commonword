@@ -14,6 +14,11 @@ executors:
       - image: cimg/node:20.19
     working_directory: ~/project
 
+  rust-executor:
+    docker:
+      - image: rust:1.87-bookworm
+    working_directory: ~/project
+
 commands:
   enable-pnpm:
     steps:
@@ -136,6 +141,87 @@ jobs:
             cd clients
             pnpm audit --audit-level high
 
+  tauri-security:
+    executor: rust-executor
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - cargo-v1-{{ checksum "clients/apps/tauri/src-tauri/Cargo.lock" }}
+            - cargo-v1-
+      - run:
+          name: Install cargo-audit
+          command: |
+            if ! command -v cargo-audit >/dev/null 2>&1; then
+              cargo install cargo-audit --locked
+            fi
+      - save_cache:
+          key: cargo-v1-{{ checksum "clients/apps/tauri/src-tauri/Cargo.lock" }}
+          paths:
+            - ~/.cargo/bin
+            - ~/.cargo/git
+            - ~/.cargo/registry
+      - run:
+          name: Audit Rust dependencies
+          command: cargo audit --file clients/apps/tauri/src-tauri/Cargo.lock
+
+  android-quality:
+    machine:
+      image: android:2024.11.1
+    resource_class: medium
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+            - gradle-v1-
+      - run:
+          name: Install Android SDK 36 packages
+          command: |
+            yes | sdkmanager --licenses >/dev/null || true
+            sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - run:
+          name: Run Android lint, unit tests, and JaCoCo
+          command: |
+            cd clients/apps/android-native
+            ./gradlew --no-daemon lintDebug testDebugUnitTest jacocoTestReport
+      - save_cache:
+          key: gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+      - store_test_results:
+          path: clients/apps/android-native/app/build/test-results
+      - store_artifacts:
+          path: clients/apps/android-native/app/build/reports
+          destination: android-reports
+
+  android-security:
+    machine:
+      image: android:2024.11.1
+    resource_class: medium
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+            - gradle-v1-
+      - run:
+          name: Install Android SDK 36 packages
+          command: |
+            yes | sdkmanager --licenses >/dev/null || true
+            sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - run:
+          name: Run OWASP Dependency-Check
+          command: |
+            cd clients/apps/android-native
+            ./gradlew --no-daemon dependencyCheckAnalyze
+      - store_artifacts:
+          path: clients/apps/android-native/app/build/reports
+          destination: android-security-reports
+
 workflows:
   ci:
     jobs:
@@ -143,3 +229,6 @@ workflows:
       - backend-security
       - clients-quality
       - clients-security
+      - tauri-security
+      - android-quality
+      - android-security

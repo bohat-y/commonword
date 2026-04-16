@@ -11,6 +11,8 @@ composeBom = "2024.09.00"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
 datastore = "1.1.1"
+dependencyCheck = "12.2.1"
+jacoco = "0.8.14"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,3 +40,4 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+dependency-check = { id = "org.owasp.dependencycheck", version.ref = "dependencyCheck" }
