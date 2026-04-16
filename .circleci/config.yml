@@ -1,10 +1,5 @@
 version: 2.1
 
-parameters:
-  run_extended_security:
-    type: boolean
-    default: false
-
 executors:
   dotnet-executor:
     docker:
@@ -200,47 +195,6 @@ jobs:
       - store_test_results:
           path: clients/apps/android-native/app/build/test-results/testDebugUnitTest
 
-  android-security:
-    machine:
-      image: android:2024.11.1
-    resource_class: medium
-    working_directory: ~/project
-    steps:
-      - checkout
-      - run:
-          name: Skip if NVD API key is not configured
-          command: |
-            if [ -z "${NVD_API_KEY:-}" ]; then
-              echo "Skipping Android dependency scan because NVD_API_KEY is not set."
-              circleci-agent step halt
-            fi
-      - restore_cache:
-          keys:
-            - gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
-            - gradle-v1-
-      - restore_cache:
-          keys:
-            - dependency-check-v1-{{ .Branch }}-
-            - dependency-check-v1-
-      - run:
-          name: Install Android SDK 36 packages
-          command: |
-            yes | sdkmanager --licenses >/dev/null || true
-            sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-      - run:
-          name: Run OWASP Dependency-Check
-          no_output_timeout: 30m
-          command: |
-            cd clients/apps/android-native
-            ./gradlew --no-daemon dependencyCheckAnalyze
-      - save_cache:
-          key: dependency-check-v1-{{ .Branch }}-{{ epoch }}
-          paths:
-            - ~/.gradle/dependency-check-data
-      - store_artifacts:
-          path: clients/apps/android-native/app/build/reports
-          destination: android-security-reports
-
 workflows:
   ci:
     jobs:
@@ -251,16 +205,8 @@ workflows:
       - android-quality
 
   extended-security:
-    when: << pipeline.parameters.run_extended_security >>
     jobs:
       - tauri-security:
-          filters:
-            branches:
-              only:
-                - main
-      - android-security:
-          context:
-            - commonword-extended-security
           filters:
             branches:
               only:

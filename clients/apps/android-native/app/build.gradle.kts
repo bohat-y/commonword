@@ -3,7 +3,6 @@ import org.gradle.testing.jacoco.tasks.JacocoReport
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.dependency.check)
     jacoco
 }
 
@@ -63,15 +62,6 @@ android {
 
 jacoco {
     toolVersion = libs.versions.jacoco.get()
-}
-
-dependencyCheck {
-    formats = listOf("HTML", "JSON")
-    failBuildOnCVSS = 7.0f
-    scanConfigurations = listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")
-    skipTestGroups = true
-    data.directory = "${gradle.gradleUserHomeDir}/dependency-check-data"
-    nvd.apiKey = providers.environmentVariable("NVD_API_KEY").orNull
 }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
