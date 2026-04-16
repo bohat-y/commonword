@@ -117,7 +117,7 @@ jobs:
           name: Generate backend Cobertura coverage
           command: |
             rm -rf /tmp/backend-coverage
-            mkdir -p /tmp/backend-coverage/test-results /tmp/backend-coverage/cobertura
+            mkdir -p /tmp/backend-coverage/test-results /tmp/backend-coverage/trx /tmp/backend-coverage/cobertura
             dotnet test backend/Commonword.sln \
               -c Release \
               --no-restore \
@@ -125,12 +125,16 @@ jobs:
               --results-directory /tmp/backend-coverage/test-results \
               --collect:"XPlat Code Coverage;Format=cobertura"
 
+            find /tmp/backend-coverage/test-results -name '*.trx' | while read -r file; do
+              cp "$file" /tmp/backend-coverage/trx/
+            done
+
             find /tmp/backend-coverage/test-results -name 'coverage.cobertura.xml' | while read -r file; do
               folder="$(basename "$(dirname "$file")")"
               cp "$file" "/tmp/backend-coverage/cobertura/${folder}-coverage.cobertura.xml"
             done
       - store_test_results:
-          path: /tmp/backend-coverage/test-results
+          path: /tmp/backend-coverage/trx
       - store_artifacts:
           path: /tmp/backend-coverage
           destination: backend-coverage
