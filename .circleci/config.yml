@@ -273,6 +273,87 @@ jobs:
           path: clients/apps/android-native/app/build/reports
           destination: android-quality-reports
 
+  android-release:
+    machine:
+      image: android:2024.11.1
+    resource_class: medium
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+            - gradle-v1-
+      - run:
+          name: Validate Android signing secrets
+          command: |
+            for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+              if [ -z "${!name:-}" ]; then
+                echo "$name must be set in the commonword-android-release context."
+                exit 1
+              fi
+            done
+      - run:
+          name: Install Android SDK 36 packages
+          command: |
+            yes | sdkmanager --licenses >/dev/null || true
+            sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - run:
+          name: Decode Android release keystore
+          command: |
+            mkdir -p /tmp/android-signing
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/android-signing/commonword-release.jks
+            echo 'export ANDROID_KEYSTORE_PATH=/tmp/android-signing/commonword-release.jks' >> "$BASH_ENV"
+      - run:
+          name: Build signed Android release artifacts
+          command: |
+            cd clients/apps/android-native
+            ./gradlew --no-daemon assembleRelease bundleRelease
+      - run:
+          name: Verify Android release signatures
+          command: |
+            sdk_root="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+            apksigner_bin="$(find "$sdk_root/build-tools" -name apksigner | sort | tail -n1)"
+            if [ -z "$apksigner_bin" ]; then
+              echo "apksigner was not found under $sdk_root/build-tools"
+              exit 1
+            fi
+
+            apk_count=0
+            while IFS= read -r apk; do
+              apk_count=$((apk_count + 1))
+              echo "Verifying APK: $apk"
+              "$apksigner_bin" verify --print-certs "$apk"
+            done < <(find clients/apps/android-native/app/build/outputs/apk/release -name '*.apk' | sort)
+
+            if [ "$apk_count" -eq 0 ]; then
+              echo "No release APKs were produced."
+              exit 1
+            fi
+
+            aab_count=0
+            while IFS= read -r aab; do
+              aab_count=$((aab_count + 1))
+              echo "Verifying AAB: $aab"
+              jarsigner -verify -verbose -certs "$aab"
+            done < <(find clients/apps/android-native/app/build/outputs/bundle/release -name '*.aab' | sort)
+
+            if [ "$aab_count" -eq 0 ]; then
+              echo "No release app bundles were produced."
+              exit 1
+            fi
+      - save_cache:
+          key: gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+      - store_artifacts:
+          path: clients/apps/android-native/app/build/outputs/apk/release
+          destination: android-release-apk
+      - store_artifacts:
+          path: clients/apps/android-native/app/build/outputs/bundle/release
+          destination: android-release-bundle
+
   frontend-reports:
     executor: node-executor
     environment:
@@ -487,6 +568,13 @@ workflows:
               only:
                 - main
       - android-reports:
+          filters:
+            branches:
+              only:
+                - main
+      - android-release:
+          context:
+            - commonword-android-release
           filters:
             branches:
               only:

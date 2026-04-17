@@ -42,3 +42,7 @@ src-tauri/gen/
 *.env
 .env.*
 !.env.example
+
+# Android signing
+*.jks
+*.keystore
