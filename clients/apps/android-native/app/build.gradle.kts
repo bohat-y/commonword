@@ -10,6 +10,21 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+val productionApiBaseUrl =
+    providers.gradleProperty("COMMONWORD_PROD_API_BASE_URL")
+        .orElse(providers.environmentVariable("COMMONWORD_PROD_API_BASE_URL"))
+        .orElse("https://commonword-api-lon1-eekc3.ondigitalocean.app/")
+        .get()
+val debugApiBaseUrl =
+    providers.gradleProperty("COMMONWORD_DEBUG_API_BASE_URL")
+        .orElse(providers.environmentVariable("COMMONWORD_DEBUG_API_BASE_URL"))
+        .orElse(productionApiBaseUrl)
+        .get()
+val deviceApiBaseUrl =
+    providers.gradleProperty("COMMONWORD_DEVICE_API_BASE_URL")
+        .orElse(providers.environmentVariable("COMMONWORD_DEVICE_API_BASE_URL"))
+        .orElse(productionApiBaseUrl)
+        .get()
 val hasReleaseSigning =
     !releaseKeystorePath.isNullOrBlank() &&
         !releaseKeystorePassword.isNullOrBlank() &&
@@ -45,14 +60,14 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:5000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
         }
         create("deviceDebug") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".device"
             versionNameSuffix = "-device"
             matchingFallbacks += listOf("debug")
-            buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:5000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$deviceApiBaseUrl\"")
         }
         create("deviceLocalRelease") {
             initWith(getByName("release"))
@@ -60,14 +75,14 @@ android {
             versionNameSuffix = "-local"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
-            buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:5000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$deviceApiBaseUrl\"")
         }
         release {
             isMinifyEnabled = false
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            buildConfigField("String", "API_BASE_URL", "\"https://api.commonword.app/\"")
+            buildConfigField("String", "API_BASE_URL", "\"$productionApiBaseUrl\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
