@@ -87,7 +87,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
-
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.example.android_native.R
 private data class SolveUiState(
     val loading: Boolean = true,
     val details: SolveSessionDetailsDto? = null,
@@ -880,7 +882,11 @@ private fun CrosswordGrid(
                                     .clip(RoundedCornerShape(5.dp))
                                     .border(1.dp, border, RoundedCornerShape(5.dp))
                                     .background(baseBackground, RoundedCornerShape(5.dp))
-                                    .clickable(enabled = !isBlock) { onSelect(row, col) },
+                                    .clickable(enabled = !isBlock) { onSelect(row, col) }
+                                    .testTag(
+                                        if (isBlock) "cell-$row-$col-block"
+                                        else "cell-$row-$col"
+                                    ),
                             contentAlignment = Alignment.Center
                         ) {
                             if (flashColor.alpha > 0f) {

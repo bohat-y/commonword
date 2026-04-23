@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">CommonWord</string>
+
+    <!-- HomeScreen -->
+    <string name="daily_puzzle_subtitle">Crucigrama diario para sesiones de concentración.</string>
+    <string name="start_solving">Comenzar</string>
+    <string name="resume_solving">Reanudar</string>
+    <string name="retry">Reintentar</string>
+    <string name="loading">Cargando…</string>
+    <string name="no_daily_puzzle">No hay crucigrama diario. Vuelve más tarde.</string>
+    <string name="api_error">No se puede conectar con el servidor.</string>
+    <string name="by_author">Por %1$s</string>
+    <string name="source_label">Fuente: %1$s</string>
+    <string name="grid_size">%1$dx%2$d cuadrícula</string>
+    <string name="saved_session_available">Sesión guardada disponible.</string>
+    <string name="resuming">Reanudando...</string>
+    <string name="starting">Iniciando...</string>
+    <string name="session_ready">Sesión lista: %1$s</string>
+
+    <!-- SolveScreen -->
+    <string name="back">Atrás</string>
+    <string name="session_not_found">Sesión no encontrada.</string>
+    <string name="unable_to_load_session">No se pudo cargar la sesión.</string>
+    <string name="select_cell_to_view_clue">Selecciona una casilla para ver la pista.</string>
+
+    <!-- SolveScreen actions -->
+    <string name="clear_cell">Borrar casilla</string>
+    <string name="checking">Comprobando...</string>
+    <string name="check_word">Comprobar palabra</string>
+    <string name="correct_word">Palabra correcta.</string>
+    <string name="word_incomplete">La palabra está incompleta.</string>
+    <string name="word_incorrect_letters">Algunas letras son incorrectas.</string>
+    <string name="unable_to_check_word">No se pudo comprobar la palabra.</string>
+
+
+    <!-- Clue panel -->
+    <string name="across">Horizontal</string>
+    <string name="down">Vertical</string>
+</resources>

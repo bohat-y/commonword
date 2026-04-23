@@ -15,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -22,6 +24,8 @@ import com.example.android_native.data.api.PuzzleMetaDto
 import com.example.android_native.data.api.PuzzlePublicDataDto
 import com.example.android_native.data.api.PuzzlePublicDto
 import com.example.android_native.ui.theme.AndroidnativeTheme
+import androidx.compose.ui.res.stringResource
+import com.example.android_native.R
 
 @Composable
 fun HomeScreen(
@@ -33,16 +37,22 @@ fun HomeScreen(
     Box(modifier = modifier.fillMaxSize()) {
         when {
             state.loading ->
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .semantics { contentDescription = "CircularProgressIndicator" }
+                )
+
             state.puzzle != null ->
                 HomeContent(
                     state = state,
                     onStartSession = onStartSession,
                     modifier = Modifier.fillMaxSize()
                 )
+
             else ->
                 EmptyState(
-                    message = state.errorMessage ?: "No daily puzzle yet. Check back later.",
+                    message = state.errorMessage ?: stringResource(R.string.no_daily_puzzle),
                     onRetry = onRetry,
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -61,11 +71,13 @@ private fun HomeContent(
         modifier = modifier.padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = "CommonWord", style = MaterialTheme.typography.headlineMedium)
+        Text(text = stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+
         Text(
-            text = "Daily puzzle for focused solving sessions.",
+            text = stringResource(R.string.daily_puzzle_subtitle),
             style = MaterialTheme.typography.bodyMedium
         )
+
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -73,30 +85,43 @@ private fun HomeContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(text = puzzle.title, style = MaterialTheme.typography.titleLarge)
+
                 val author = puzzle.data.meta?.author
                 if (!author.isNullOrBlank()) {
                     Text(
-                        text = "By $author",
+                        text = stringResource(R.string.by_author, author),
                         style = MaterialTheme.typography.bodySmall
                     )
+
+
                 }
+
                 val source = puzzle.data.meta?.source
                 if (!source.isNullOrBlank()) {
                     Text(
-                        text = "Source: $source",
+                        text = stringResource(R.string.source_label, source),
                         style = MaterialTheme.typography.bodySmall
                     )
+
                 }
+
                 Text(
-                    text = "${puzzle.data.width}x${puzzle.data.height} grid",
+                    text = stringResource(
+                        R.string.grid_size,
+                        puzzle.data.width,
+                        puzzle.data.height
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
 
+
                 if (!state.resumeSessionId.isNullOrBlank()) {
                     Text(
-                        text = "Saved session available.",
+                        text = stringResource(R.string.saved_session_available),
                         style = MaterialTheme.typography.bodySmall
                     )
+
+
                 }
 
                 Button(
@@ -106,19 +131,24 @@ private fun HomeContent(
                 ) {
                     val buttonText =
                         when {
-                            state.startingSession && !state.resumeSessionId.isNullOrBlank() -> "Resuming..."
-                            state.startingSession -> "Starting..."
-                            !state.resumeSessionId.isNullOrBlank() -> "Resume solving"
-                            else -> "Start solving"
+                            state.startingSession && !state.resumeSessionId.isNullOrBlank() ->
+                                stringResource(R.string.resuming)
+                            state.startingSession ->
+                                stringResource(R.string.starting)
+                            !state.resumeSessionId.isNullOrBlank() ->
+                                stringResource(R.string.resume_solving)
+                            else ->
+                                stringResource(R.string.start_solving)
                         }
                     Text(buttonText)
+
                 }
             }
         }
 
         state.startedSessionId?.let { sessionId ->
             Text(
-                text = "Session ready: $sessionId",
+                text = stringResource(R.string.session_ready, sessionId),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -147,7 +177,8 @@ private fun EmptyState(
     ) {
         Text(text = message, style = MaterialTheme.typography.bodyMedium)
         Button(onClick = onRetry) {
-            Text("Retry")
+            Text(stringResource(R.string.retry))
+
         }
     }
 }
