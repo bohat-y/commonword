@@ -21,7 +21,6 @@
     <string name="back">Atrás</string>
     <string name="session_not_found">Sesión no encontrada.</string>
     <string name="unable_to_load_session">No se pudo cargar la sesión.</string>
-    <string name="select_cell_to_view_clue">Selecciona una casilla para ver la pista.</string>
 
     <!-- SolveScreen actions -->
     <string name="clear_cell">Borrar casilla</string>
@@ -29,11 +28,17 @@
     <string name="check_word">Comprobar palabra</string>
     <string name="correct_word">Palabra correcta.</string>
     <string name="word_incomplete">La palabra está incompleta.</string>
-    <string name="word_incorrect_letters">Algunas letras son incorrectas.</string>
+    <string name="letters_incorrect">Algunas letras son incorrectas.</string>
     <string name="unable_to_check_word">No se pudo comprobar la palabra.</string>
-
-
-    <!-- Clue panel -->
+    <string name="failed_to_sync_cell_update">No se pudo sincronizar la actualización de la celda.</string>
     <string name="across">Horizontal</string>
     <string name="down">Vertical</string>
+    <string name="session_label">Sesión: %1$s</string>
+    <string name="select_cell_to_view_clue">Selecciona una celda para ver la pista.</string>
+    <string name="across_label">Horizontal</string>
+    <string name="down_label">Vertical</string>
+    <string name="clue_label_format">%1$s - %2$d %3$s</string>
+
+
+
 </resources>

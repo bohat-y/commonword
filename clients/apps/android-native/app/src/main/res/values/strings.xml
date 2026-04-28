@@ -21,7 +21,6 @@
     <string name="back">Back</string>
     <string name="session_not_found">Session not found.</string>
     <string name="unable_to_load_session">Unable to load session.</string>
-    <string name="select_cell_to_view_clue">Select a cell to view clue.</string>
 
     <!-- SolveScreen actions -->
     <string name="clear_cell">Clear cell</string>
@@ -29,11 +28,19 @@
     <string name="check_word">Check word</string>
     <string name="correct_word">Correct word.</string>
     <string name="word_incomplete">Word is incomplete.</string>
-    <string name="word_incorrect_letters">Some letters are incorrect.</string>
+    <string name="letters_incorrect">Some letters are incorrect.</string>
     <string name="unable_to_check_word">Unable to check word.</string>
-
-
-    <!-- Clue panel -->
+    <string name="failed_to_sync_cell_update">Failed to sync cell update.</string>
     <string name="across">Across</string>
     <string name="down">Down</string>
+    <string name="session_label">Session: %1$s</string>
+    <string name="select_cell_to_view_clue">Select a cell to view clue.</string>
+    <string name="across_label">Across</string>
+    <string name="down_label">Down</string>
+    <string name="clue_label_format">%1$s - %2$d %3$s</string>
+
+
+
+
+
 </resources>

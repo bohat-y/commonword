@@ -93,7 +93,7 @@ import com.example.android_native.R
 private data class SolveUiState(
     val loading: Boolean = true,
     val details: SolveSessionDetailsDto? = null,
-    val errorMessage: String? = null
+    val errorMessageKey: Int? = null
 )
 
 private data class CellPosition(val row: Int, val col: Int)
@@ -137,17 +137,21 @@ fun SolveScreen(
                 val details = repository.getSessionDetails(sessionId)
                 SolveUiState(loading = false, details = details)
             } catch (err: HttpException) {
-                val message =
+                val key =
                     if (err.code() == 404) {
-                        "Session not found."
+                        R.string.session_not_found
                     } else {
-                        "Unable to load session."
+                        R.string.unable_to_load_session
                     }
-                SolveUiState(loading = false, errorMessage = message)
+                SolveUiState(loading = false, errorMessageKey = key)
             } catch (_: Exception) {
-                SolveUiState(loading = false, errorMessage = "Unable to load session.")
+                SolveUiState(
+                    loading = false,
+                    errorMessageKey = R.string.unable_to_load_session
+                )
             }
     }
+
 
     BackHandler(onBack = onBack)
 
@@ -164,7 +168,8 @@ fun SolveScreen(
                 )
             else ->
                 SolveError(
-                    message = uiState.errorMessage ?: "Unable to load session.",
+                    message = uiState.errorMessageKey?.let { stringResource(it) }
+                        ?: stringResource(R.string.unable_to_load_session),
                     onRetry = ::reload,
                     onBack = onBack,
                     modifier = Modifier.align(Alignment.Center)
@@ -191,8 +196,8 @@ private fun SolveContent(
     }
     val pendingSync = remember(details.session.id) { mutableStateMapOf<String, PendingCellUpdate>() }
     var pendingRevision by remember(details.session.id) { mutableIntStateOf(0) }
-    var syncErrorMessage by remember(details.session.id) { mutableStateOf<String?>(null) }
-    var statusMessage by remember(details.session.id) { mutableStateOf("") }
+    var syncErrorMessageKey by remember { mutableStateOf<Int?>(null) }
+    var statusMessageKey by remember(details.session.id) { mutableStateOf<Int?>(null) }
     var checkingWord by remember(details.session.id) { mutableStateOf(false) }
     var inputValue by remember(details.session.id) { mutableStateOf("") }
     var incorrectFlash by remember(details.session.id) { mutableStateOf<Set<String>>(emptySet()) }
@@ -307,7 +312,7 @@ private fun SolveContent(
         updateAutoCheckCandidates(row, col)
         pendingSync[key] = PendingCellUpdate(row = row, col = col, value = normalized)
         pendingRevision += 1
-        syncErrorMessage = null
+        syncErrorMessageKey = null
         incorrectFlash = incorrectFlash - key
         correctFlash = correctFlash - key
     }
@@ -421,7 +426,8 @@ private fun SolveContent(
         val repo = repository ?: return
         checkMutex.withLock {
             if (showStatus) {
-                statusMessage = ""
+                statusMessageKey = null
+
             }
 
             try {
@@ -459,16 +465,16 @@ private fun SolveContent(
                 }
 
                 if (showStatus) {
-                    statusMessage =
+                    statusMessageKey =
                         when {
-                            result.correct -> "Correct word."
-                            !result.complete -> "Word is incomplete."
-                            else -> "Some letters are incorrect."
+                            result.correct -> R.string.correct_word
+                            !result.complete -> R.string.word_incomplete
+                            else -> R.string.letters_incorrect
                         }
                 }
             } catch (_: Exception) {
                 if (showStatus) {
-                    statusMessage = "Unable to check word."
+                    statusMessageKey = R.string.unable_to_check_word
                 }
             }
         }
@@ -524,7 +530,7 @@ private fun SolveContent(
                 if (!ENABLE_CELL_SYNC) {
                     pendingSync.clear()
                     pendingAutoChecks.clear()
-                    syncErrorMessage = null
+                    syncErrorMessageKey = null
                     return@collect
                 }
 
@@ -551,7 +557,7 @@ private fun SolveContent(
                     }
 
                 if (failed) {
-                    syncErrorMessage = "Failed to sync cell update."
+                    syncErrorMessageKey = R.string.failed_to_sync_cell_update
                     return@collect
                 }
 
@@ -575,10 +581,10 @@ private fun SolveContent(
         correctFlash = emptySet()
     }
 
-    LaunchedEffect(statusMessage) {
-        if (statusMessage.isBlank()) return@LaunchedEffect
+    LaunchedEffect(statusMessageKey) {
+        if (statusMessageKey == null) return@LaunchedEffect
         delay(1600)
-        statusMessage = ""
+        statusMessageKey = null
     }
 
     Box(
@@ -646,7 +652,7 @@ private fun SolveContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(onClick = onBack) {
-                    Text("Back")
+                    Text(stringResource(R.string.back))
                 }
                 Text(
                     text = details.puzzle.title,
@@ -657,8 +663,8 @@ private fun SolveContent(
             }
 
             Text(
-                text = "Session: ${details.session.id}",
-                style = MaterialTheme.typography.bodySmall
+                text = stringResource(R.string.session_label, details.session.id),
+                    style = MaterialTheme.typography.bodySmall
             )
 
             CrosswordGrid(
@@ -674,10 +680,20 @@ private fun SolveContent(
             )
 
             Card(modifier = Modifier.fillMaxWidth()) {
-                val clueLabel =
-                    selectedClue?.let { clue ->
-                        "$activeClueText - ${clue.number} ${clue.direction.name.uppercase()}"
-                    } ?: "Select a cell to view clue."
+                val clueLabel = selectedClue?.let { clue ->
+                    val directionLabel = when (clue.direction) {
+                        WordDirection.Across -> stringResource(R.string.across_label)
+                        WordDirection.Down -> stringResource(R.string.down_label)
+                    }
+
+                    stringResource(
+                        R.string.clue_label_format,
+                        activeClueText,
+                        clue.number,
+                        directionLabel
+                    )
+                } ?: stringResource(R.string.select_cell_to_view_clue)
+
 
                 Column(
                     modifier = Modifier
@@ -702,15 +718,22 @@ private fun SolveContent(
                             },
                             enabled = selectedCell != null
                         ) {
-                            Text("Clear cell")
+                            Text(stringResource(R.string.clear_cell))
                         }
                         Button(
                             onClick = ::runCheckWord,
                             enabled = selectedClue != null && !checkingWord && repository != null
                         ) {
-                            Text(if (checkingWord) "Checking..." else "Check word")
+                            Text(
+                                text = if (checkingWord)
+                                    stringResource(R.string.checking)
+                                else
+                                    stringResource(R.string.check_word)
+                            )
+
                         }
                     }
+                    val statusMessage = statusMessageKey?.let { stringResource(it) } ?: ""
 
                     if (statusMessage.isNotBlank()) {
                         Text(
@@ -721,13 +744,16 @@ private fun SolveContent(
                 }
             }
 
-            if (!syncErrorMessage.isNullOrBlank()) {
+            val syncErrorMessage = syncErrorMessageKey?.let { stringResource(it) } ?: ""
+
+            if (syncErrorMessage.isNotBlank()) {
                 Text(
-                    text = syncErrorMessage.orEmpty(),
+                    text = syncErrorMessage,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
             }
+
 
             Row(
                 modifier = Modifier
@@ -736,7 +762,7 @@ private fun SolveContent(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ClueList(
-                    title = "Across",
+                    title = stringResource(R.string.across),
                     clues = data.clues.across,
                     direction = WordDirection.Across,
                     active = selectedClue,
@@ -747,7 +773,7 @@ private fun SolveContent(
                     modifier = Modifier.weight(1f)
                 )
                 ClueList(
-                    title = "Down",
+                    title = stringResource(R.string.down),
                     clues = data.clues.down,
                     direction = WordDirection.Down,
                     active = selectedClue,
@@ -1260,7 +1286,7 @@ private fun SolveContentPreview() {
 private fun SolveErrorPreview() {
     AndroidnativeTheme {
         SolveError(
-            message = "Session not found.",
+            message = stringResource(R.string.session_not_found),
             onRetry = {},
             onBack = {}
         )
