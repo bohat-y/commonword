@@ -93,7 +93,7 @@ jobs:
             dotnet test backend/tests/Commonword.Tests.Integration \
               -c Release \
               --no-restore \
-              --logger "junit;LogFilePrefix=commonword-integration" \
+              --logger "trx;LogFilePrefix=commonword-integration" \
               --results-directory /tmp/integration-coverage/test-results \
               --collect:"XPlat Code Coverage;Format=cobertura"
 
