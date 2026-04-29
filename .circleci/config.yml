@@ -176,6 +176,9 @@ jobs:
       - store_artifacts:
           path: /tmp/backend-coverage
           destination: backend-coverage
+      - run:
+          name: Install gpg for Codecov CLI verification
+          command: apt-get update && apt-get install -y gnupg
       - codecov/upload:
           files: /tmp/backend-coverage/cobertura/*.xml
           flags: backend
