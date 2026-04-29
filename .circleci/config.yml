@@ -302,7 +302,7 @@ jobs:
           name: Generate Android lint and JaCoCo reports
           command: |
             cd clients/apps/android-native
-            ./gradlew --no-daemon lintDebug jacocoTestReport
+            ./gradlew --no-daemon testDebugUnitTest lintDebug jacocoTestReport
       - save_cache:
           key: gradle-v1-{{ checksum "clients/apps/android-native/gradle/libs.versions.toml" }}-{{ checksum "clients/apps/android-native/gradle/wrapper/gradle-wrapper.properties" }}
           paths:

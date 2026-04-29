@@ -1,0 +1,11 @@
+coverage:
+  flags:
+    backend:
+      paths:
+        - backend/src/
+    android:
+      paths:
+        - clients/apps/android-native/
+
+fixes:
+  - "clients/apps/android-native/app/src/main/java/::"
