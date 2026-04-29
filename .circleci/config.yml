@@ -183,6 +183,7 @@ jobs:
       - codecov/upload:
           files: /tmp/backend-coverage/cobertura/coverage.cobertura.xml
           flags: backend
+          slug: bohat-y/commonword
 
   clients-quality:
     executor: node-executor
