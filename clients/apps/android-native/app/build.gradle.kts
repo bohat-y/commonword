@@ -128,10 +128,11 @@ tasks.register<JacocoReport>("jacocoTestReport") {
     val buildDir = layout.buildDirectory.get().asFile
     val kotlinClasses = fileTree(buildDir) {
         include(
-            "intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes/**/*.class",
+            "intermediates/**/debug/**/classes/**/*.class",
             "tmp/kotlin-classes/debug/**/*.class"
         )
         exclude(excludes)
+        exclude("**/test/**", "**/androidTest/**", "**/UnitTest/**")
     }
 
     classDirectories.setFrom(files(kotlinClasses))
