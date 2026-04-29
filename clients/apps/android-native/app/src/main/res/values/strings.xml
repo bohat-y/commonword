@@ -38,9 +38,8 @@
     <string name="across_label">Across</string>
     <string name="down_label">Down</string>
     <string name="clue_label_format">%1$s - %2$d %3$s</string>
-
-
-
-
+    <string name="puzzle_completed_title">Puzzle Completed!</string>
+    <string name="puzzle_completed_message">You solved the crossword!</string>
+    <string name="finish">Finish</string>
 
 </resources>

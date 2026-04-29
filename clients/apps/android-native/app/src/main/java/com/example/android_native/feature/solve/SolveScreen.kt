@@ -205,6 +205,8 @@ private fun SolveContent(
     var solvedClues by remember(details.session.id) { mutableStateOf<Set<String>>(emptySet()) }
     var incorrectFlashRevision by remember(details.session.id) { mutableIntStateOf(0) }
     var correctFlashRevision by remember(details.session.id) { mutableIntStateOf(0) }
+    var showCompletionDialog by remember { mutableStateOf(false) }
+    var hasShownCompletion by remember { mutableStateOf(false) }
     val pendingAutoChecks = remember(details.session.id) { mutableStateMapOf<String, ClueSelection>() }
     val checkMutex = remember { Mutex() }
     val focusRequester = remember { FocusRequester() }
@@ -511,6 +513,11 @@ private fun SolveContent(
             focusCellInput(showKeyboard = true)
         }
     }
+    val totalClueCount = remember(data.clues) {
+        data.clues.across.size + data.clues.down.size
+    }
+
+    val isPuzzleComplete = solvedClues.size == totalClueCount
 
     val highlightedCells = remember(selectedClue, data.wordIndex) { buildHighlighted(selectedClue, data.wordIndex) }
     val activeClueText = selectedClue?.let { clueText(it, data.clues) }.orEmpty()
@@ -580,6 +587,12 @@ private fun SolveContent(
         delay(1200)
         correctFlash = emptySet()
     }
+    LaunchedEffect(isPuzzleComplete) {
+        if (isPuzzleComplete && !hasShownCompletion) {
+            hasShownCompletion = true
+            showCompletionDialog = true
+        }
+    }
 
     LaunchedEffect(statusMessageKey) {
         if (statusMessageKey == null) return@LaunchedEffect
@@ -637,8 +650,10 @@ private fun SolveContent(
                                 }
                             }
                         }
+
                     }
                 }
+
     ) {
         Column(
             modifier = Modifier
@@ -664,7 +679,7 @@ private fun SolveContent(
 
             Text(
                 text = stringResource(R.string.session_label, details.session.id),
-                    style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall
             )
 
             CrosswordGrid(
@@ -732,6 +747,7 @@ private fun SolveContent(
                             )
 
                         }
+
                     }
                     val statusMessage = statusMessageKey?.let { stringResource(it) } ?: ""
 
@@ -741,6 +757,25 @@ private fun SolveContent(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
+                }
+                if (showCompletionDialog) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showCompletionDialog = false },
+                        confirmButton = {
+                            Button(onClick = {
+                                showCompletionDialog = false
+                                onBack()
+                            }) {
+                                Text(stringResource(R.string.finish))
+                            }
+                        },
+                        title = {
+                            Text(stringResource(R.string.puzzle_completed_title))
+                        },
+                        text = {
+                            Text(stringResource(R.string.puzzle_completed_message))
+                        }
+                    )
                 }
             }
 
@@ -883,16 +918,16 @@ private fun CrosswordGrid(
                                 else -> Color.White
                             }
                         val flashColor by
-                            animateColorAsState(
-                                targetValue =
-                                    when {
-                                        isIncorrectFlash -> Color(0xFFFECACA)
-                                        isCorrectFlash -> Color(0xFFBBF7D0)
-                                        else -> Color(0x00FFFFFF) // transparent white, not black
-                                    },
-                                animationSpec = tween(durationMillis = 220),
-                                label = "cellFlashColor"
-                            )
+                        animateColorAsState(
+                            targetValue =
+                                when {
+                                    isIncorrectFlash -> Color(0xFFFECACA)
+                                    isCorrectFlash -> Color(0xFFBBF7D0)
+                                    else -> Color(0x00FFFFFF) // transparent white, not black
+                                },
+                            animationSpec = tween(durationMillis = 220),
+                            label = "cellFlashColor"
+                        )
                         val border =
                             when {
                                 isSelected -> Color(0xFFFB8C00)
