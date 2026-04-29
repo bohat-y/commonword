@@ -14,6 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Commonword.Tests.Unit</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Commonword.Contracts\Commonword.Contracts.csproj" />
     <ProjectReference Include="..\..\Commonword.Infrastructure\Commonword.Infrastructure.csproj" />
   </ItemGroup>

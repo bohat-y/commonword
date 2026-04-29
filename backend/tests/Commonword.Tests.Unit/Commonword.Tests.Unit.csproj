@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Puzzles\Commonword.Modules.Puzzles.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Solving\Commonword.Modules.Solving.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -89,17 +89,29 @@ jobs:
       - run:
           name: Run backend integration tests
           command: |
-            mkdir -p /tmp/test-results/dotnet-integration
+            mkdir -p /tmp/integration-coverage/test-results /tmp/integration-coverage/cobertura
             dotnet test backend/tests/Commonword.Tests.Integration \
               -c Release \
               --no-restore \
               --logger "trx;LogFilePrefix=commonword-integration" \
-              --results-directory /tmp/test-results/dotnet-integration
+              --results-directory /tmp/integration-coverage/test-results \
+              --collect:"XPlat Code Coverage;Format=cobertura"
+
+            find /tmp/integration-coverage/test-results -name 'coverage.cobertura.xml' \
+              | head -1 \
+              | xargs -I{} cp {} /tmp/integration-coverage/cobertura/coverage.cobertura.xml
       - store_test_results:
-          path: /tmp/test-results/dotnet-integration
+          path: /tmp/integration-coverage/test-results
       - store_artifacts:
-          path: /tmp/test-results/dotnet-integration
+          path: /tmp/integration-coverage
           destination: backend-integration-test-results
+      - run:
+          name: Install gpg for Codecov CLI verification
+          command: apt-get update && apt-get install -y gnupg
+      - codecov/upload:
+          files: /tmp/integration-coverage/cobertura/coverage.cobertura.xml
+          flags: backend
+          slug: bohat-y/commonword
 
   backend-security:
     executor: dotnet-executor
