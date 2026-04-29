@@ -4,14 +4,15 @@ Commonword is a modular monolith backend with lightweight clients for solving cr
 
 ## Tech Stack
 - Backend: ASP.NET Core Web API (.NET 10), EF Core, PostgreSQL
-- Clients: Svelte + Vite (web) and Svelte + Vite + Tauri (desktop/mobile shell)
-- Hosting: Neon Postgres for production, Cloudflare Pages for web clients
+- Clients: Android native (Kotlin + Jetpack Compose), Svelte + Vite web, and Svelte + Vite + Tauri
+- Hosting: Neon Postgres for production, DigitalOcean App Platform for the API, Cloudflare Pages for web clients
 
 ## Repo Layout
 - `backend/` .NET solution, modules, contracts, and infrastructure
 - `clients/packages/ui-core/` Shared Svelte UI package
 - `clients/apps/web/` Svelte + Vite web UI (Telegram mini-app)
 - `clients/apps/tauri/` Svelte + Vite + Tauri UI
+- `clients/apps/android-native/` Native Android app using Kotlin, Jetpack Compose, Retrofit, and DataStore
 - `docs/` architecture and ADRs
 
 ## Local Dev
@@ -55,6 +56,35 @@ Both clients read `VITE_API_BASE_URL`. Example `.env`:
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
+Android native app:
+
+Open Android Studio with the native app:
+```bash
+studio clients/apps/android-native
+```
+
+Use **Device Manager** in Android Studio to create and start an emulator, then run the app directly from the IDE. Or, with an emulator already running, install via Gradle:
+
+```bash
+cd clients/apps/android-native
+./gradlew assembleDebug
+``` The Android app uses Retrofit to call the Commonword API and stores local player/session metadata with DataStore.
+
+Android API base URL defaults:
+- `debug`: deployed API by default, override with `COMMONWORD_DEBUG_API_BASE_URL`
+- `deviceDebug`: deployed API by default, override with `COMMONWORD_DEVICE_API_BASE_URL`
+- `release`: deployed API by default, override with `COMMONWORD_PROD_API_BASE_URL`
+
+For a physical device calling a local backend, use your machine's LAN IP rather than `localhost`:
+```bash
+./gradlew installDeviceDebug -PCOMMONWORD_DEVICE_API_BASE_URL=http://192.168.1.20:5000/
+```
+
+For an emulator calling a local backend, use:
+```bash
+./gradlew installDebug -PCOMMONWORD_DEBUG_API_BASE_URL=http://10.0.2.2:5000/
+```
+
 ## Configuration
 
 ### Connection strings
@@ -66,6 +96,15 @@ ConnectionStrings__Default=Host=ep-example.neon.tech;Database=commonword;Usernam
 
 ### CORS
 `Cors:AllowedOrigins` lives in `backend/src/Commonword.Api/appsettings.json`. Add your client origins there.
+
+### Android signing
+CircleCI can build signed Android release artifacts. Signing secrets are stored in the `commonword-android-release` context:
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+The keystore file itself must not be committed. Local keystore files are ignored by `.gitignore`.
 
 ## Migrations
 Migrations live in `backend/src/Commonword.Infrastructure/Persistence/Migrations`.
@@ -122,6 +161,63 @@ using buildx for multi-arch:
     -t ghcr.io/<your-github-username>/commonword-api:latest \
     --push .    
 ```
+
+## Android Native Client
+
+The native Android app is in `clients/apps/android-native`.
+
+Key features:
+- loads the daily puzzle from the API
+- starts or resumes a solving session
+- renders an interactive crossword grid
+- syncs cell entries to the API
+- checks completed words through the API
+- supports local player/session persistence with DataStore
+- includes English and Spanish string resources
+
+Useful commands:
+```bash
+cd clients/apps/android-native
+
+# Local JVM tests
+./gradlew testDebugUnitTest
+
+# Instrumented Compose UI tests on a connected device/emulator
+./gradlew connectedDebugAndroidTest
+
+# Lint and JaCoCo reports
+./gradlew lintDebug jacocoTestReport
+
+# Release artifacts, signed when signing env vars are present
+./gradlew assembleRelease bundleRelease
+```
+
+Localization resources:
+- English: `app/src/main/res/values/strings.xml`
+- Spanish: `app/src/main/res/values-es/strings.xml`
+
+CI behavior:
+- `android-quality` runs local JVM Android tests such as `HomeViewModelTest`.
+- `android-reports` generates Android lint and JaCoCo artifacts.
+- `android-release` builds signed APK/AAB artifacts, verifies their signatures, and stores them as CircleCI artifacts.
+- Instrumented Compose UI tests under `app/src/androidTest` are not currently run in CircleCI; run them with `connectedDebugAndroidTest`.
+
+## CI/CD
+
+CircleCI runs separate API and client workflows.
+
+API workflow:
+- restores, builds, and tests the ASP.NET Core solution
+- runs a NuGet vulnerability audit
+- on `main`, builds and pushes the API Docker image to GHCR using both `sha-<commit>` and `latest` tags
+- on `main`, deploys the new API image to DigitalOcean App Platform
+
+Client workflows:
+- builds the Svelte web and Tauri shells
+- runs JS dependency audit
+- runs Android JVM unit tests
+- produces frontend, Android lint, JaCoCo, and signed Android release artifacts on `main`
+
 ## Notes
 - Puzzle definitions are stored as JSONB in Postgres.
 - The daily puzzle endpoint returns the most recent `is_daily=true` puzzle, otherwise the most recent import.
