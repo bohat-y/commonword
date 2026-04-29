@@ -222,3 +222,4 @@ Client workflows:
 - Puzzle definitions are stored as JSONB in Postgres.
 - The daily puzzle endpoint returns the most recent `is_daily=true` puzzle, otherwise the most recent import.
 - Marking a puzzle as daily clears `is_daily` on other puzzles to keep a single daily.
+
