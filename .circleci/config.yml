@@ -153,7 +153,7 @@ jobs:
           command: |
             rm -rf /tmp/backend-coverage
             mkdir -p /tmp/backend-coverage/test-results /tmp/backend-coverage/trx /tmp/backend-coverage/cobertura
-            dotnet test backend/Commonword.sln \
+            dotnet test backend/tests/Commonword.Tests.Unit \
               -c Release \
               --no-restore \
               --logger "trx;LogFilePrefix=coverage" \
