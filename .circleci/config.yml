@@ -89,19 +89,23 @@ jobs:
       - run:
           name: Run backend integration tests
           command: |
-            mkdir -p /tmp/integration-coverage/test-results /tmp/integration-coverage/cobertura
+            mkdir -p /tmp/integration-coverage/test-results /tmp/integration-coverage/junit /tmp/integration-coverage/cobertura
             dotnet test backend/tests/Commonword.Tests.Integration \
               -c Release \
               --no-restore \
-              --logger "trx;LogFilePrefix=commonword-integration" \
+              --logger "junit;LogFilePrefix=commonword-integration" \
               --results-directory /tmp/integration-coverage/test-results \
               --collect:"XPlat Code Coverage;Format=cobertura"
+
+            find /tmp/integration-coverage/test-results -name '*.xml' ! -name 'coverage.cobertura.xml' | while read -r file; do
+              cp "$file" /tmp/integration-coverage/junit/
+            done
 
             find /tmp/integration-coverage/test-results -name 'coverage.cobertura.xml' \
               | head -1 \
               | xargs -I{} cp {} /tmp/integration-coverage/cobertura/coverage.cobertura.xml
       - store_test_results:
-          path: /tmp/integration-coverage/test-results
+          path: /tmp/integration-coverage/junit
       - store_artifacts:
           path: /tmp/integration-coverage
           destination: backend-integration-test-results
