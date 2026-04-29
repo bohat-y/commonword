@@ -68,3 +68,5 @@ app.MapSolvingEndpoints();
 app.MapTelemetryEndpoints();
 
 app.Run();
+
+public partial class Program { }
