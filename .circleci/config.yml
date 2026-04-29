@@ -316,6 +316,7 @@ jobs:
       - codecov/upload:
           files: clients/apps/android-native/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
           flags: android
+          slug: bohat-y/commonword
 
   android-release:
     machine:
