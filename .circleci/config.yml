@@ -54,10 +54,10 @@ jobs:
           name: Build backend
           command: dotnet build backend/Commonword.sln -c Release --no-restore
       - run:
-          name: Run backend tests
+          name: Run backend unit tests
           command: |
             mkdir -p /tmp/test-results/dotnet
-            dotnet test backend/Commonword.sln \
+            dotnet test backend/tests/Commonword.Tests.Unit \
               -c Release \
               --no-restore \
               --logger "trx;LogFilePrefix=commonword" \
@@ -67,6 +67,36 @@ jobs:
       - store_artifacts:
           path: /tmp/test-results/dotnet
           destination: backend-test-results
+
+  backend-integration:
+    executor: dotnet-executor
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          keys:
+            - nuget-v1-{{ checksum "backend/Directory.Packages.props" }}-{{ checksum "backend/Commonword.sln" }}
+            - nuget-v1-
+      - run:
+          name: Restore backend dependencies
+          command: dotnet restore backend/Commonword.sln
+      - run:
+          name: Build backend
+          command: dotnet build backend/Commonword.sln -c Release --no-restore
+      - run:
+          name: Run backend integration tests
+          command: |
+            mkdir -p /tmp/test-results/dotnet-integration
+            dotnet test backend/tests/Commonword.Tests.Integration \
+              -c Release \
+              --no-restore \
+              --logger "trx;LogFilePrefix=commonword-integration" \
+              --results-directory /tmp/test-results/dotnet-integration
+      - store_test_results:
+          path: /tmp/test-results/dotnet-integration
+      - store_artifacts:
+          path: /tmp/test-results/dotnet-integration
+          destination: backend-integration-test-results
 
   backend-security:
     executor: dotnet-executor
@@ -517,12 +547,14 @@ workflows:
   api-ci:
     jobs:
       - backend-quality
+      - backend-integration
       - backend-security
       - publish-api-image:
           context:
             - commonword-api-deploy
           requires:
             - backend-quality
+            - backend-integration
             - backend-security
           filters:
             branches:
