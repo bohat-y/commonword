@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  codecov: codecov/codecov@5
+
 executors:
   dotnet-executor:
     docker:
@@ -173,6 +176,9 @@ jobs:
       - store_artifacts:
           path: /tmp/backend-coverage
           destination: backend-coverage
+      - codecov/upload:
+          files: /tmp/backend-coverage/cobertura/*.xml
+          flags: backend
 
   clients-quality:
     executor: node-executor
@@ -302,6 +308,9 @@ jobs:
       - store_artifacts:
           path: clients/apps/android-native/app/build/reports
           destination: android-quality-reports
+      - codecov/upload:
+          files: clients/apps/android-native/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+          flags: android
 
   android-release:
     machine:
