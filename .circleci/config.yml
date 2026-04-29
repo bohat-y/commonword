@@ -160,19 +160,20 @@ jobs:
               -c Release \
               --no-restore \
               --logger "trx;LogFilePrefix=coverage" \
+              --logger "junit;LogFilePrefix=coverage" \
               --results-directory /tmp/backend-coverage/test-results \
               --collect:"XPlat Code Coverage;Format=cobertura"
 
-            find /tmp/backend-coverage/test-results -name '*.trx' | while read -r file; do
+            find /tmp/backend-coverage/test-results -name '*.xml' ! -name 'coverage.cobertura.xml' | while read -r file; do
               cp "$file" /tmp/backend-coverage/trx/
             done
 
-            find /tmp/backend-coverage/test-results -name 'coverage.cobertura.xml' | while read -r file; do
-              folder="$(basename "$(dirname "$file")")"
-              cp "$file" "/tmp/backend-coverage/cobertura/${folder}-coverage.cobertura.xml"
-            done
+            find /tmp/backend-coverage/test-results -name 'coverage.cobertura.xml' \
+              | head -1 \
+              | xargs -I{} cp {} /tmp/backend-coverage/cobertura/coverage.cobertura.xml
       - store_test_results:
           path: /tmp/backend-coverage/trx
+
       - store_artifacts:
           path: /tmp/backend-coverage
           destination: backend-coverage
@@ -180,7 +181,7 @@ jobs:
           name: Install gpg for Codecov CLI verification
           command: apt-get update && apt-get install -y gnupg
       - codecov/upload:
-          files: /tmp/backend-coverage/cobertura/*.xml
+          files: /tmp/backend-coverage/cobertura/coverage.cobertura.xml
           flags: backend
 
   clients-quality:
